@@ -1,37 +1,47 @@
 import sys
 import csv
 
+def format_number(number, precision=2):
+    # build format string
+    number = round(number, 2)
+    format_str = '{{:,.{}f}}'.format(precision)
+    # make number string
+    number_str = format_str.format(number)
+    # replace chars
+    return number_str.replace(',', 'X').replace('.', ',').replace('X', '.')
+
 known = {
-  "Gehalt": ["DYNATRACE AUSTRIA GMBH", "NUKI", "Dynatrace Austria GmbH"],
+  "Gehalt": ["DYNATRACE AUSTRIA GMBH", "NUKI", "Dynatrace Austria GmbH", ", GEHALT", "Gehalt"],
   "Miete": ["Lydia und Gerhard Burgstaller"],
-  "Lebensmittel": ["SPAR DANKT", "BILLA DANKT", "LIDL DANKT", "ADEG", "AGM", "PENNY", "BASIC AUSTRIA"],
+  "Lebensmittel": ["SPAR DANKT", "BILLA DANKT", "LIDL DANKT", "ADEG", "AGM", "PENNY", "BASIC AUSTRIA", "FRESSNAPF", "BAECKEREI"],
   "Drogerie": ["DM-FIL", "BIPA", "MUELLER"],
   "Technik": ["MEDIA MARKT"],
-  "Kleidung und Sport": ["KIK", "INTERSPORT", "H&M", "RABATTZ", "DEICHMANN"],
-  "Einrichtung": ["XXXLUTZ", "IKEA", "JYSK", "THALIA.AT"],
+  "Kleidung und Sport": ["KIK", "INTERSPORT", "H&M", "RABATTZ", "DEICHMANN", "WERKSKAUFHAUS"],
+  "Einrichtung": ["XXXLUTZ", "IKEA", "JYSK", "THALIA.AT", "DEPOT HANDELSGESELL", "LAGERHAUS", "S' KAEFERLE", "OBI"],
   "Tanken": ["TANKSTELLE", "ENI", "OMV", "TURMOEL", "SHELL", "PP ROSENTRALER"],
   "Hygiene": ["KLIPP"],
   "Essen Firma": ["HOTSPOT"], 
   "Trafik": ["TRAFIK"],
   "Versicherung": ["Wiener Staedtische Versicherung AG", "Allianz Elementar", "UNIQA", "Zürich/Unfall", "MAND-ID 00260000000000000000000000000415708"],
   "Internet und Mobil": ["Oja.at", "HOT TELEKOM"],
-  "Paypal": ["PAYPAL"],
   "Bar": ["FOYER-BEHEB", "BANKOMAT", "AUTOMAT"],
   "Kredit": ["KREDITRATE"],
   "Amazon": ["AMAZON.DE", "AMZN MKTP"],
   "Fastfood": ["MCDONALDS", "SUBWAY", "DUNKIN DONUTS"],
   "Apotheke": ["APOTHEKE"],
-  "Parken": ["PARKEN", "PARKHAUS", "WIPARK", "PARKGARAGE"],
-  "Optiker": ["Wutscher Optik KG", "SEHEN WUTSCHER"],
-  "Freizeit": ["HAUS DES MEE", "PARKBAD DOBRIACH"],
+  "Parken und Maut": ["PARKEN", "PARKHAUS", "WIPARK", "PARKGARAGE", "MAUTSTELLE"],
+  "Optiker": ["Wutscher Optik KG", "SEHEN WUTSCHER", "IWEAR DIRECT LTD"],
+  "Freizeit": ["HAUS DES MEE", "PARKBAD DOBRIACH", "METZGERWIRT", "BADEHAUS"],
   "Strafe": ["BH Hermagor"],
-  "Öffentl. Verkehr": ["WIENER LINIEN"],
+  "Öffentl. Verkehr": ["WIENER LINIEN", "STRASSENBAHN GRAZ"],
   "Arzt": ["DR CHRISTIAN EBNER"],
   "Überweisung": ["UEBERWEISUNG"],
   "Konto": ["Kontoführung", "Sollzinssatz", "Wird der vereinbarte Rahmen überzogen"],
   "Energie Graz GmbH": ["Energie Graz GmbH"],
   "Kreditkarte": ["Ihre MasterCard Abrechnung"],
-  "Autoversicherung": ["MAND-ID 0706MG78142"]
+  "Autoversicherung": ["MAND-ID 0706MG78142"],
+  "Spotify": ["PAYPAL *SPOTIFY"],
+  "Paypal": ["PAYPAL"],
 }
 
 
@@ -70,27 +80,67 @@ with open(sys.argv[1], mode ='r') as file:
       
     per_month[month][text] = per_month[month][text] + value
 
+
+
     
 for m in per_month:
   print("---------------------- " + m + " ----------------------")
   saldo = 0
+  unkown_list = {}
   for kn in known:
     if kn in per_month[m]:
       v = round(per_month[m][kn], 2)
       saldo = saldo + v
     else:
       v = 0.0
-    print(f"{kn}: {v}")
+    print(f"{kn}\t{format_number(v)}")
   unk_v = 0
   for unk in per_month[m]:
     if not unk in known:
-      print(f"{unk}: {per_month[m][unk]}")
+      # print(f"{unk}: {per_month[m][unk]}")
+      unkown_list[unk] = per_month[m][unk]
       unk_v = unk_v + per_month[m][unk]
     
   vx = round(unk_v, 2)
   saldo = saldo + vx
-  print(f"Unknown: {vx}")
+  print(f"Unknown\t{format_number(vx)}")
   saldo = round(saldo, 2)
-  print(f"SALDO: {saldo}")
-  print("\n\n")
+  print(f"SALDO:\t{format_number(saldo)}")
+  print("\n")
+  for s in unkown_list:
+    print(f"{s}\t{unkown_list[s]}")
+  print("\n\n\n")
+
+rows = [""] 
+for kn in known:
+  rows.append(kn)
+rows.append("Unbekannt")
+rows.append("SALDO")
+
+index_unknown = len(known) + 1
+ 
+for m in per_month:
+  rows[0] = rows[0] + "\t" + m
+  unk_v = 0.0
+  saldo = 0.0
+  for a in per_month[m]:
+    saldo = saldo + per_month[m][a]
+    if not a in known:
+      unk_v = unk_v + per_month[m][a]
+  rows[index_unknown] = rows[index_unknown] + "\t" + format_number(unk_v)
+  rows[index_unknown + 1] = rows[index_unknown + 1] + "\t" + format_number(saldo)
+  
+ri = 1
+for kn in known:
+  for m in per_month:
+    v = 0.0
+    if kn in per_month[m]:
+      v = per_month[m][kn]
+    rows[ri] = rows[ri] + "\t" + format_number(v) 
+  ri = ri + 1  
+
+
+for r in rows:
+  print(r)  
+
    
